@@ -171,7 +171,7 @@
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-base font-bold text-white">Log Terbaru Google Spreadsheet</h2>
-        <span id="sheetInfoText" class="text-xs text-slate-400">Belum terhubung ke Apps Script URL</span>
+        <span id="sheetInfoText" class="text-xs text-slate-400">Menghubungkan ke Spreadsheet...</span>
       </div>
 
       <div class="overflow-x-auto">
@@ -191,7 +191,7 @@
           <tbody id="historyTableBody" class="divide-y divide-slate-800/70 text-slate-300">
             <tr>
               <td colspan="8" class="py-6 text-center text-slate-500">
-                Masukkan URL Web App Google Apps Script di menu <b>Konfigurasi</b> untuk menampilkan log Spreadsheet.
+                Memuat data dari Google Spreadsheet...
               </td>
             </tr>
           </tbody>
@@ -202,14 +202,11 @@
   </main>
 
   <script>
-    // =========================================================================
-    // PASTE URL WEB APP GOOGLE APPS SCRIPT ANDA (.../exec) DI BAWAH INI:
-    // =========================================================================
     const DEFAULT_TOPIC_DATA = "monitoring-air/esp32-01/data";
     const DEFAULT_SHEET_URL  = "https://script.google.com/macros/s/AKfycbyNij8RwEgxPu1RctDDeXDYLydMKk9Uo-4hR0TUIgJ_SgTgBqw4FJCP1bB18QhcqVP-UQ/exec";
 
     let topicData = localStorage.getItem("iot_topic_data") || DEFAULT_TOPIC_DATA;
-    let sheetUrl  = localStorage.getItem("iot_sheet_url")  || (DEFAULT_SHEET_URL.startsWith("http") ? DEFAULT_SHEET_URL : "");
+    let sheetUrl  = localStorage.getItem("iot_sheet_url")  || DEFAULT_SHEET_URL;
     let client    = null;
 
     document.getElementById("inputTopicData").value = topicData;
@@ -221,7 +218,7 @@
 
     function saveSettings() {
       topicData = document.getElementById("inputTopicData").value.trim() || DEFAULT_TOPIC_DATA;
-      sheetUrl  = document.getElementById("inputSheetUrl").value.trim();
+      sheetUrl  = document.getElementById("inputSheetUrl").value.trim()  || DEFAULT_SHEET_URL;
       localStorage.setItem("iot_topic_data", topicData);
       localStorage.setItem("iot_sheet_url", sheetUrl);
       toggleSettings();
@@ -229,9 +226,6 @@
       fetchSheetHistory();
     }
 
-    // =========================================================================
-    // INISIALISASI GRAFIK CHART.JS
-    // =========================================================================
     const ctx = document.getElementById("sensorChart").getContext("2d");
     const sensorChart = new Chart(ctx, {
       type: "line",
@@ -300,9 +294,6 @@
       sensorChart.update("none");
     }
 
-    // =========================================================================
-    // KONEKSI EMQX BROKER VIA SECURE WEBSOCKET (WSS PORT 8084)
-    // =========================================================================
     function connectMQTT() {
       if (client) {
         client.end(true);
@@ -417,9 +408,6 @@
       }
     }
 
-    // =========================================================================
-    // AMBIL RIWAYAT DATA DARI GOOGLE SPREADSHEET
-    // =========================================================================
     async function fetchSheetHistory() {
       if (!sheetUrl) return;
       const infoEl = document.getElementById("sheetInfoText");
@@ -432,6 +420,7 @@
         const tbody = document.getElementById("historyTableBody");
         if (!Array.isArray(rows) || rows.length === 0) {
           infoEl.textContent = "Spreadsheet terhubung (belum ada baris data)";
+          tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">Spreadsheet sudah terhubung. Menunggu data pertama dikirim dari ESP32.</td></tr>`;
           return;
         }
 
