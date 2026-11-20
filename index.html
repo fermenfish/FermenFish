@@ -18,7 +18,7 @@
           <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
           FermenFish &mdash; Monitoring Suhu &amp; Kadar pH
         </h1>
-        <p class="text-xs text-slate-400">EMQX Real-Time Telemetry &bull; Google Spreadsheet Logger</p>
+        <p class="text-xs text-slate-400">EMQX Cloud Private Broker &bull; Google Spreadsheet Logger</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -202,11 +202,17 @@
   </main>
 
   <script>
-    const DEFAULT_TOPIC_DATA = "monitoring-air/esp32-01/data";
+    // =========================================================================
+    // KONFIGURASI EMQX CLOUD PRIVATE BROKER & GOOGLE APPS SCRIPT
+    // =========================================================================
+    const MQTT_WSS_URL       = "wss://m2ef59e1.ala.asia-southeast1.emqxsl.com:8084/mqtt";
+    const MQTT_USERNAME      = "fermenfish";
+    const MQTT_PASSWORD      = "fermenfish123";
+    const DEFAULT_TOPIC_DATA = "fermenfish/esp32-01/data";
     const DEFAULT_SHEET_URL  = "https://script.google.com/macros/s/AKfycbyNij8RwEgxPu1RctDDeXDYLydMKk9Uo-4hR0TUIgJ_SgTgBqw4FJCP1bB18QhcqVP-UQ/exec";
 
-    let topicData = localStorage.getItem("iot_topic_data") || DEFAULT_TOPIC_DATA;
-    let sheetUrl  = localStorage.getItem("iot_sheet_url")  || DEFAULT_SHEET_URL;
+    let topicData = localStorage.getItem("iot_topic_data_v2") || DEFAULT_TOPIC_DATA;
+    let sheetUrl  = localStorage.getItem("iot_sheet_url_v2")  || DEFAULT_SHEET_URL;
     let client    = null;
 
     document.getElementById("inputTopicData").value = topicData;
@@ -219,8 +225,8 @@
     function saveSettings() {
       topicData = document.getElementById("inputTopicData").value.trim() || DEFAULT_TOPIC_DATA;
       sheetUrl  = document.getElementById("inputSheetUrl").value.trim()  || DEFAULT_SHEET_URL;
-      localStorage.setItem("iot_topic_data", topicData);
-      localStorage.setItem("iot_sheet_url", sheetUrl);
+      localStorage.setItem("iot_topic_data_v2", topicData);
+      localStorage.setItem("iot_sheet_url_v2", sheetUrl);
       toggleSettings();
       connectMQTT();
       fetchSheetHistory();
@@ -299,9 +305,11 @@
         client.end(true);
       }
 
-      const clientId = "web-gh-" + Math.random().toString(16).substring(2, 10);
-      client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
+      const clientId = "web-ff-" + Math.random().toString(16).substring(2, 10);
+      client = mqtt.connect(MQTT_WSS_URL, {
         clientId: clientId,
+        username: MQTT_USERNAME,
+        password: MQTT_PASSWORD,
         clean: true,
         reconnectPeriod: 3000
       });
@@ -315,6 +323,13 @@
         dot.className   = "w-2 h-2 rounded-full bg-emerald-400";
         text.textContent = "EMQX Terhubung";
         client.subscribe(topicData);
+      });
+
+      client.on("error", (err) => {
+        badge.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30";
+        dot.className   = "w-2 h-2 rounded-full bg-rose-400";
+        text.textContent = "Cek User/Pass EMQX";
+        console.error("MQTT Error:", err);
       });
 
       client.on("offline", () => {
